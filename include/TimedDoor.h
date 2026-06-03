@@ -35,6 +35,7 @@ class TimedDoor : public Door {
   bool isOpened;
  public:
   explicit TimedDoor(int);
+  ~TimedDoor();  // добавлен деструктор
   bool isDoorOpened();
   void unlock();
   void lock();

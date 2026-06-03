@@ -22,7 +22,10 @@ target_link_libraries(${PROJECT_NAME}.test
     gmock
 )
 
+<<<<<<< HEAD
 add_test(NAME ${PROJECT_NAME}.test COMMAND ${PROJECT_NAME}.test)
 
+=======
+>>>>>>> 150a37e70d9ad1d5ebae54f33fd312b67532c2e0
 install(TARGETS ${PROJECT_NAME}.test
         DESTINATION "${tool_dest}")

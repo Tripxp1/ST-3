@@ -103,23 +103,49 @@ TEST_F(TimedDoorTest, multipleLockKeepsDoorClosed) {
 // New tests for Timer functionality
 TEST_F(TimedDoorTest, timerTriggersTimeoutAfterDelay) {
     door->unlock();
+<<<<<<< HEAD
 
     bool exceptionThrown = false;
     try {
         timer->tregister(door->getTimeOut(), adapter);
+=======
+    
+    bool exceptionThrown = false;
+    try {
+        timer->tregister(door->getTimeOut(), adapter);
+        std::this_thread::sleep_for(std::chrono::milliseconds(1500));
+>>>>>>> 150a37e70d9ad1d5ebae54f33fd312b67532c2e0
     } catch (const std::runtime_error& e) {
         exceptionThrown = true;
         EXPECT_STREQ(e.what(), "Door is open");
     }
+<<<<<<< HEAD
 
+=======
+    
+>>>>>>> 150a37e70d9ad1d5ebae54f33fd312b67532c2e0
     EXPECT_TRUE(exceptionThrown);
 }
 
 TEST_F(TimedDoorTest, timerDoesNotTriggerAfterDoorClosed) {
     door->unlock();
+<<<<<<< HEAD
     door->lock();
 
     EXPECT_NO_THROW(timer->tregister(door->getTimeOut(), adapter));
+=======
+    door->lock();  // Close door before timeout
+    
+    bool exceptionThrown = false;
+    try {
+        timer->tregister(door->getTimeOut(), adapter);
+        std::this_thread::sleep_for(std::chrono::milliseconds(1500));
+    } catch (const std::runtime_error& e) {
+        exceptionThrown = true;
+    }
+    
+    EXPECT_FALSE(exceptionThrown);
+>>>>>>> 150a37e70d9ad1d5ebae54f33fd312b67532c2e0
 }
 
 TEST_F(TimedDoorTest, timerTriggersWithMockClient) {
@@ -142,15 +168,32 @@ TEST_F(TimedDoorTest, timerWithZeroTimeout) {
 
 TEST_F(TimedDoorTest, doorUnlockTriggersTimerAndThrows) {
     door->unlock();
+<<<<<<< HEAD
 
     EXPECT_THROW(timer->tregister(door->getTimeOut(), adapter), std::runtime_error);
+=======
+    
+    EXPECT_THROW({
+        timer->tregister(door->getTimeOut(), adapter);
+        std::this_thread::sleep_for(std::chrono::milliseconds(1500));
+    }, std::runtime_error);
+>>>>>>> 150a37e70d9ad1d5ebae54f33fd312b67532c2e0
 }
 
 TEST_F(TimedDoorTest, multipleTimersOnSameDoor) {
     door->unlock();
+<<<<<<< HEAD
 
     EXPECT_THROW(timer->tregister(door->getTimeOut(), adapter), std::runtime_error);
     EXPECT_THROW(timer->tregister(door->getTimeOut(), adapter), std::runtime_error);
+=======
+    
+    timer->tregister(door->getTimeOut(), adapter);
+    timer->tregister(door->getTimeOut(), adapter);
+    
+    std::this_thread::sleep_for(std::chrono::milliseconds(1500));
+    
+>>>>>>> 150a37e70d9ad1d5ebae54f33fd312b67532c2e0
     EXPECT_TRUE(door->isDoorOpened());
 }
 

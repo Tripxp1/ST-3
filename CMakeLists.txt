@@ -9,7 +9,10 @@ set(tool_dest "bin")
 set(lib_dest "lib")
 set(include_dest "include/")
 
+<<<<<<< HEAD
 enable_testing()
 
+=======
+>>>>>>> 150a37e70d9ad1d5ebae54f33fd312b67532c2e0
 add_subdirectory(src)
 add_subdirectory(test)

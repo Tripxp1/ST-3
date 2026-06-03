@@ -2,28 +2,42 @@
 #include "TimedDoor.h"
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
+#include <thread>
+#include <chrono>
 
 class MockTimerClient : public TimerClient {
  public:
     MOCK_METHOD(void, Timeout, (), (override));
 };
 
+// Mock Door for testing
+class MockDoor : public Door {
+ public:
+    MOCK_METHOD(void, lock, (), (override));
+    MOCK_METHOD(void, unlock, (), (override));
+    MOCK_METHOD(bool, isDoorOpened, (), (override));
+};
+
 class TimedDoorTest : public ::testing::Test {
  protected:
     void SetUp() override {
-        door = new TimedDoor(5);
+        door = new TimedDoor(1);  // 1 second timeout for faster tests
         adapter = new DoorTimerAdapter(*door);
+        timer = new Timer();
     }
 
     void TearDown() override {
         delete door;
         delete adapter;
+        delete timer;
     }
 
     TimedDoor* door;
     DoorTimerAdapter* adapter;
+    Timer* timer;
 };
 
+// Existing tests
 TEST_F(TimedDoorTest, initiallyDoorIsClosed) {
     EXPECT_FALSE(door->isDoorOpened());
 }
@@ -40,7 +54,7 @@ TEST_F(TimedDoorTest, lockClosesDoor) {
 }
 
 TEST_F(TimedDoorTest, returnsCorrectTimeout) {
-    EXPECT_EQ(door->getTimeOut(), 5);
+    EXPECT_EQ(door->getTimeOut(), 1);
 }
 
 TEST_F(TimedDoorTest, adapterTimeoutThrowsWhenDoorOpen) {
@@ -86,19 +100,73 @@ TEST_F(TimedDoorTest, multipleLockKeepsDoorClosed) {
     EXPECT_FALSE(door->isDoorOpened());
 }
 
-TEST_F(TimedDoorTest, timeoutDoesNotThrowAfterLockAndUnlock) {
+// New tests for Timer functionality
+TEST_F(TimedDoorTest, timerTriggersTimeoutAfterDelay) {
     door->unlock();
-    door->lock();
-    door->unlock();
-    EXPECT_THROW(adapter->Timeout(), std::runtime_error);
+    
+    bool exceptionThrown = false;
+    try {
+        timer->tregister(door->getTimeOut(), adapter);
+        std::this_thread::sleep_for(std::chrono::milliseconds(1500));
+    } catch (const std::runtime_error& e) {
+        exceptionThrown = true;
+        EXPECT_STREQ(e.what(), "Door is open");
+    }
+    
+    EXPECT_TRUE(exceptionThrown);
 }
 
-TEST_F(TimedDoorTest, multipleTimeoutCallsAfterClose) {
+TEST_F(TimedDoorTest, timerDoesNotTriggerAfterDoorClosed) {
     door->unlock();
-    door->lock();
-    EXPECT_NO_THROW(adapter->Timeout());
-    EXPECT_NO_THROW(adapter->Timeout());
-    EXPECT_NO_THROW(adapter->Timeout());
+    door->lock();  // Close door before timeout
+    
+    bool exceptionThrown = false;
+    try {
+        timer->tregister(door->getTimeOut(), adapter);
+        std::this_thread::sleep_for(std::chrono::milliseconds(1500));
+    } catch (const std::runtime_error& e) {
+        exceptionThrown = true;
+    }
+    
+    EXPECT_FALSE(exceptionThrown);
+}
+
+TEST_F(TimedDoorTest, timerTriggersWithMockClient) {
+    MockTimerClient mockClient;
+    
+    EXPECT_CALL(mockClient, Timeout()).Times(1);
+    
+    timer->tregister(0, &mockClient);
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+}
+
+TEST_F(TimedDoorTest, timerWithZeroTimeout) {
+    MockTimerClient mockClient;
+    
+    EXPECT_CALL(mockClient, Timeout()).Times(1);
+    
+    timer->tregister(0, &mockClient);
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+}
+
+TEST_F(TimedDoorTest, doorUnlockTriggersTimerAndThrows) {
+    door->unlock();
+    
+    EXPECT_THROW({
+        timer->tregister(door->getTimeOut(), adapter);
+        std::this_thread::sleep_for(std::chrono::milliseconds(1500));
+    }, std::runtime_error);
+}
+
+TEST_F(TimedDoorTest, multipleTimersOnSameDoor) {
+    door->unlock();
+    
+    timer->tregister(door->getTimeOut(), adapter);
+    timer->tregister(door->getTimeOut(), adapter);
+    
+    std::this_thread::sleep_for(std::chrono::milliseconds(1500));
+    
+    EXPECT_TRUE(door->isDoorOpened());
 }
 
 TEST_F(TimedDoorTest, adapterHoldsReferenceToSameDoor) {
@@ -114,4 +182,9 @@ TEST_F(TimedDoorTest, timeoutAfterCloseAndReopen) {
     EXPECT_THROW(adapter->Timeout(), std::runtime_error);
     door->lock();
     EXPECT_NO_THROW(adapter->Timeout());
+}
+
+TEST(TimerTest, tregisterWithNullClientDoesNothing) {
+    Timer t;
+    EXPECT_NO_THROW(t.tregister(1, nullptr));
 }

@@ -10,18 +10,14 @@ target_include_directories(${PROJECT_NAME}
   PUBLIC ${CMAKE_CURRENT_BINARY_DIR}
          ${${PROJECT_NAME}_SOURCE_DIR}/include)
 target_link_libraries(${PROJECT_NAME}
-  pthread
-  ${CMAKE_THREAD_LIBS_INIT})
-
-find_package(Threads REQUIRED)
+  pthread)
 
 add_executable(${PROJECT_NAME}.info main.cpp)
 target_include_directories(${PROJECT_NAME}.info
   PUBLIC ${CMAKE_CURRENT_BINARY_DIR}
          ${${PROJECT_NAME}_SOURCE_DIR}/include)
 target_link_libraries(${PROJECT_NAME}.info
-  ${PROJECT_NAME}
-  Threads::Threads)
+  ${PROJECT_NAME})
 
 
 install(TARGETS ${PROJECT_NAME}

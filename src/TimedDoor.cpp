@@ -5,41 +5,48 @@
 #include <stdexcept>
 #include <thread>
 
-DoorTimerAdapter::DoorTimerAdapter(TimedDoor& d) : door(d) {}
+DoorTimerAdapter::DoorTimerAdapter(TimedDoor& timedDoor) : door(timedDoor) {}
 
 void DoorTimerAdapter::Timeout() {
-  if (door.isDoorOpened()) {
-    door.throwState();
-  }
+  Timer timer;
+  timer.tregister(door.getTimeOut(), this);
+  door.throwState();
 }
 
-TimedDoor::TimedDoor(int timeout) : iTimeout(timeout), isOpened(false) {
-  adapter = new DoorTimerAdapter(*this);
+TimedDoor::TimedDoor(int timeout)
+    : adapter(new DoorTimerAdapter(*this)), iTimeout(timeout), isOpened(false) {}
+
+bool TimedDoor::isDoorOpened() {
+  return isOpened;
 }
 
-TimedDoor::~TimedDoor() { delete adapter; }
+void TimedDoor::unlock() {
+  isOpened = true;
+  adapter->Timeout();
+}
 
-bool TimedDoor::isDoorOpened() { return isOpened; }
+void TimedDoor::lock() {
+  isOpened = false;
+}
 
-void TimedDoor::unlock() { isOpened = true; }
-
-void TimedDoor::lock() { isOpened = false; }
-
-int TimedDoor::getTimeOut() const { return iTimeout; }
+int TimedDoor::getTimeOut() const {
+  return iTimeout;
+}
 
 void TimedDoor::throwState() {
-  throw std::runtime_error("Door is open");
-}
-
-void Timer::sleep(int seconds) {
-  std::this_thread::sleep_for(std::chrono::seconds(seconds));
+  if (isOpened) {
+    throw std::runtime_error("Door is still open");
+  }
 }
 
 void Timer::tregister(int timeout, TimerClient* timerClient) {
-  if (timerClient == nullptr) {
-    return;
-  }
   client = timerClient;
   sleep(timeout);
-  client->Timeout();
+}
+
+void Timer::sleep(int timeout) {
+  if (timeout <= 0) {
+    return;
+  }
+  std::this_thread::sleep_for(std::chrono::milliseconds(timeout));
 }
